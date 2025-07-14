@@ -4,3 +4,4 @@ python-dotenv
 pytest
 langchain-core
 langchain-community
+httpx

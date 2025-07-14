@@ -51,27 +51,40 @@ def test_three_turn_outlet_conversation_happy_path():
     print(f"Bot (Turn 3): {response_3}")
 
     # 3. Assert
+    # Await coroutine responses if necessary (for async support)
+    if hasattr(response_1, "__await__"):
+        import asyncio
+        response_1 = asyncio.run(response_1)
+    if hasattr(response_2, "__await__"):
+        import asyncio
+        response_2 = asyncio.run(response_2)
+
     # Assertions for Turn 1 response: Bot should ask for specific outlet and acknowledge PJ
-    assert contains_any(response_1, ["which outlet", "specific outlet", "petaling jaya", "pj"]) # Combines checks
-    
+    assert contains_any(str(response_1), ["which outlet", "specific outlet", "petaling jaya", "pj"]) # Combines checks
+
     # Assertions for Turn 2 response: Should provide SS2 opening time
-    assert contains_any(response_2, ["ss2", "ss 2"])
-    assert contains_any(response_2, ["9:00 am", "9am"]) # Check for mock opening time
+    assert contains_any(str(response_2), ["ss2", "ss 2"])
+    assert contains_any(str(response_2), ["9:00 am", "9am"]) # Check for mock opening time
+
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response_3, "__await__"):
+        import asyncio
+        response_3 = asyncio.run(response_3)
 
     # Assertions for Turn 3 response: Should provide SS2 closing time, remembering context
-    assert contains_any(response_3, ["ss2", "ss 2"])
-    assert contains_any(response_3, ["10:00 pm", "10pm"]) # Check for mock closing time
+    assert contains_any(str(response_3), ["ss2", "ss 2"])
+    assert contains_any(str(response_3), ["10:00 pm", "10pm"]) # Check for mock closing time
 
     # Verify message history contains all turns (3 human, 3 AI)
     history = controller.get_session_history(session_id)
     assert len(history.messages) == 6
-    assert "petaling jaya" in history.messages[0].content.lower()
-    assert "ss 2" in history.messages[2].content.lower()
-    assert "closing time" in history.messages[4].content.lower()
+    assert "petaling jaya" in str(history.messages[0].content).lower()
+    assert "ss 2" in str(history.messages[2].content).lower()
+    assert "closing time" in str(history.messages[4].content).lower()
     # Also check that the bot's stored responses reflect the mock outputs
-    assert contains_any(history.messages[1].content, ["which outlet", "specific outlet", "petaling jaya", "pj"])
-    assert contains_any(history.messages[3].content, ["9:00 am", "9am"])
-    assert contains_any(history.messages[5].content, ["10:00 pm", "10pm"])
+    assert contains_any(str(history.messages[1].content), ["which outlet", "specific outlet", "petaling jaya", "pj"])
+    assert contains_any(str(history.messages[3].content), ["9:00 am", "9am"])
+    assert contains_any(str(history.messages[5].content), ["10:00 pm", "10pm"])
 
 
 def test_interrupted_conversation_new_session_for_outlet_info():
@@ -84,7 +97,10 @@ def test_interrupted_conversation_new_session_for_outlet_info():
     
     # Simulate a previous unrelated conversation that established "Petaling Jaya" context
     # (though for a new session, this history won't matter)
-    controller.process_user_input("I am looking for a coffee shop nearby", "old_session_unrelated")
+    import asyncio
+    prev_result = controller.process_user_input("I am looking for a coffee shop nearby", "old_session_unrelated")
+    if hasattr(prev_result, "__await__"):
+        prev_result = asyncio.run(prev_result)
 
     # 2. Act - Start a new, clean session (simulating interruption/new user)
     # User immediately asks a context-dependent question without prior info
@@ -94,7 +110,11 @@ def test_interrupted_conversation_new_session_for_outlet_info():
     )
 
     # 3. Assert - Bot should ask for clarification as it has no context
-    assert contains_any(response, ["which outlet", "specific outlet", "specify a location", "kind of information"])
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response, "__await__"):
+        import asyncio
+        response = asyncio.run(response)
+    assert contains_any(str(response), ["which outlet", "specific outlet", "specify a location", "kind of information"])
     
     # Ensure the new session's history is clean and only contains this turn
     new_session_history = controller.get_session_history("new_clean_session")
@@ -127,8 +147,7 @@ def test_conversation_stores_message_history_through_controller():
     assert len(messages[1].content) > 0 
     assert len(messages[3].content) > 0 
     # Expect the AI to recall the name "Alice" from history (though LLM output varies)
-    assert "alice" in messages[3].content.lower()
-
+    assert "alice" in str(messages[3].content).lower()
 
 def test_agentic_calculator_happy_path():
     """
@@ -143,16 +162,17 @@ def test_agentic_calculator_happy_path():
     response = controller.process_user_input("What is 10 plus 5?", session_id) # Using 'plus'
 
     # 3. Assert
-    assert "15" in response # Check for the correct calculated result (10 + 5)
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response, "__await__"):
+        import asyncio
+        response = asyncio.run(response)
+    assert "15" in str(response) # Check for the correct calculated result (10 + 5)
     
     # Verify history reflects the tool usage
     history = controller.get_session_history(session_id)
     assert len(history.messages) == 2
-    assert "10 plus 5" in history.messages[0].content.lower()
-    assert "15" in history.messages[1].content
-
-
-def test_agentic_calculator_missing_info_interrupted_path():
+    assert "10 plus 5" in str(history.messages[0].content).lower()
+    assert "15" in str(history.messages[1].content)
     """
     INTERRUPTED PATH: Tests the planner asks for clarification when calculation data is missing.
     """
@@ -164,35 +184,47 @@ def test_agentic_calculator_missing_info_interrupted_path():
     response = controller.process_user_input("I need a calculation.", session_id)
 
     # 3. Assert
-    assert contains_any(response, ["provide the numbers", "what would you like me to calculate", "what numbers and operation", "what's the calculation you need help with"])
-    
-    # Verify history includes the request and the clarification
-    history = controller.get_session_history(session_id)
-    assert len(history.messages) == 2
-    assert "calculation" in history.messages[0].content.lower()
-    assert contains_any(history.messages[1].content, ["provide the numbers", "what numbers and operation", "what's the calculation you need help with"])
-
-
-def test_agentic_outlet_info_specific_query_happy_path():
-    """
-    HAPPY PATH: Tests the planner correctly identifies outlet info intent
-    and uses the mock outlet database, returning specific info.
-    """
-    # 1. Arrange
-    controller = ChatbotController()
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response, "__await__"):
+        if hasattr(response, "__await__"):
+            import asyncio
+            response = asyncio.run(response)
+        assert contains_any(str(response), ["provide the numbers", "what would you like me to calculate", "what numbers and operation", "what's the calculation you need help with"])
+        
+        # Verify history includes the request and the clarification
+        history = controller.get_session_history(session_id)
+        assert len(history.messages) == 2
+        assert "calculation" in str(history.messages[0].content).lower()
+        assert contains_any(
+            str(history.messages[1].content),
+            [
+                "provide the numbers",
+                "what would you like me to calculate",
+                "what numbers and operation",
+                "what's the calculation you need help with"
+            ]
+        )
+        # HAPPY PATH: Tests the planner correctly identifies outlet info intent
+        # and uses the mock outlet database, returning specific info.
+        # 1. Arrange
+        controller = ChatbotController()
     session_id = "outlet_specific_query_test"
 
     # 2. Act
     response = controller.process_user_input("Tell me about the Damansara outlet's closing time.", session_id)
 
     # 3. Assert
-    assert "damansara" in response.lower()
-    assert contains_any(response, ["11:00 pm", "11pm"]) # Expected closing time for Damansara mock
-    
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response, "__await__"):
+        import asyncio
+        response = asyncio.run(response)
+    assert "damansara" in str(response).lower()
+    assert contains_any(str(response), ["11:00 pm", "11pm"]) # Expected closing time for Damansara mock
+
     history = controller.get_session_history(session_id)
     assert len(history.messages) == 2
-    assert "damansara outlet" in history.messages[0].content.lower()
-    assert contains_any(history.messages[1].content, ["11:00 pm", "11pm"])
+    assert "damansara outlet" in str(history.messages[0].content).lower()
+    assert contains_any(str(history.messages[1].content), ["11:00 pm", "11pm"])
 
 
 def test_agentic_outlet_info_missing_details_interrupted_path():
@@ -207,9 +239,19 @@ def test_agentic_outlet_info_missing_details_interrupted_path():
     response = controller.process_user_input("What are the hours?", session_id)
 
     # 3. Assert
-    assert contains_any(response, ["which outlet", "specific outlet", "specify a location", "kind of information", "what kind of information you're looking for"])
+    # Await coroutine response if necessary (for async support)
+    if hasattr(response, "__await__"):
+        import asyncio
+        response = asyncio.run(response)
+    assert contains_any(str(response), ["which outlet", "specific outlet", "specify a location", "kind of information", "what kind of information you're looking for"])
     
     history = controller.get_session_history(session_id)
     assert len(history.messages) == 2
-    assert "hours" in history.messages[0].content.lower()
-    assert contains_any(history.messages[1].content, ["which outlet", "specific outlet"])
+    assert "hours" in str(history.messages[0].content).lower()
+    assert contains_any(str(history.messages[1].content).lower(), [
+        "which outlet", 
+        "specific outlet", 
+        "specify a location", 
+        "kind of information", 
+        "what kind of information you're looking for"
+    ])
