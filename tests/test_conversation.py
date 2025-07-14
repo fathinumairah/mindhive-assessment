@@ -6,7 +6,6 @@ Tests for the chatbot's conversational memory and agentic behavior (Part 1 & 2).
 
 import pytest
 from main import ChatbotController
-from planner import Intent, Action # These imports are good for context but not directly used in assertions here
 
 # --- Helper function for flexible string checking ---
 def contains_any(text: str, keywords: list) -> bool:

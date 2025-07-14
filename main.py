@@ -24,7 +24,7 @@ class ChatbotController:
         self.planner = AgenticPlanner()
         self.llm = ChatGroq(
             temperature=0.7,
-            model="llama3-8b-8192",
+            model="llama3-8b-8192",  # <-- CORRECTED THIS LINE
         )
 
         # Chat message history store (managed by get_session_history)
