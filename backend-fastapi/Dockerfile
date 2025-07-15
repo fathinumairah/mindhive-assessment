@@ -1,10 +1,10 @@
-# Use a smaller Python base image
-FROM python:3.11-slim
+# Build stage
+FROM python:3.11-slim as builder
 
 # Set working directory
 WORKDIR /app
 
-# Install only essential system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -13,12 +13,25 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies with optimizations
+# Install dependencies into a virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Runtime stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy only necessary files
+COPY ./main.py .
+COPY ./utils ./utils
+COPY ./data ./data
 
 # Create data directory
 RUN mkdir -p data
