@@ -10,10 +10,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import json
 from functools import lru_cache
+import os
 
 from utils.database import get_db, Outlet
 from utils.vector_store import vector_store
 from utils.text2sql import sql_generator
+
+# Get port from environment variable with a default value
+PORT = int(os.getenv("PORT", 10000))
 
 app = FastAPI(
     title="ZUS Coffee API",

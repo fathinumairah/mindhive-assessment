@@ -7,10 +7,13 @@ import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+from functools import lru_cache
 
 load_dotenv()
 
 class Text2SQLGenerator:
+    _instance = None
+    
     def __init__(self):
         self.schema = """
 CREATE TABLE outlets (
@@ -22,11 +25,7 @@ CREATE TABLE outlets (
     services TEXT  -- JSON string array
 );
 """
-        # Initialize Groq
-        self.llm = ChatGroq(
-            temperature=0,  # Use 0 for more deterministic SQL generation
-            model="llama3-8b-8192"
-        )
+        self.llm = None
         
         # Create prompt template for SQL generation
         self.sql_prompt = ChatPromptTemplate.from_messages([
@@ -63,8 +62,18 @@ Generate SQL for this query: {query}
 Return ONLY the SQL query, nothing else.""")
         ])
 
+    def _lazy_init(self):
+        """Lazy initialization of heavy components"""
+        if self.llm is None:
+            self.llm = ChatGroq(
+                temperature=0,  # Use 0 for more deterministic SQL generation
+                model="llama3-8b-8192"
+            )
+
     def generate_sql(self, query: str) -> str:
         """Convert natural language query to SQL"""
+        self._lazy_init()
+        
         try:
             # Use LangChain with Groq
             chain = self.sql_prompt | self.llm
@@ -78,5 +87,12 @@ Return ONLY the SQL query, nothing else.""")
             search_term = query.replace("'", "''")  # Basic SQL injection prevention
             return f"SELECT * FROM outlets WHERE name LIKE '%{search_term}%' OR address LIKE '%{search_term}%'"
 
-# Create a global instance
-sql_generator = Text2SQLGenerator() 
+@lru_cache()
+def get_sql_generator():
+    """Get or create singleton instance of Text2SQLGenerator"""
+    if Text2SQLGenerator._instance is None:
+        Text2SQLGenerator._instance = Text2SQLGenerator()
+    return Text2SQLGenerator._instance
+
+# Create a global instance but don't initialize heavy components
+sql_generator = get_sql_generator() 
