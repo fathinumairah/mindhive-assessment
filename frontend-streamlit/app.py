@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # Backend URL configuration
-BACKEND_URL = os.getenv("BACKEND_URL", "https://mindhive-chatbot-backend.onrender.com")
+BACKEND_URL = st.secrets.get("BACKEND_URL", "https://mindhive-chatbot-backend.onrender.com")
 
 # Custom CSS for chat bubbles
 st.markdown("""
