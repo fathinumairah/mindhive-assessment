@@ -1,0 +1,10 @@
+fastapi[all]
+uvicorn
+sqlalchemy
+python-dotenv
+aiosqlite
+faiss-cpu
+sentence-transformers
+numpy
+langchain
+langchain-groq

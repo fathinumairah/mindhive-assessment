@@ -1,5 +1,3 @@
-# tests/test_conversation.py
-
 """
 Tests for the chatbot's conversational memory and agentic behavior (Part 1 & 2).
 """

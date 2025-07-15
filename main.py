@@ -1,5 +1,3 @@
-# main.py
-
 import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
@@ -12,7 +10,6 @@ import asyncio
 from planner import AgenticPlanner, Intent, Action, call_calculator_api, get_mock_outlet_info
 
 load_dotenv()
-
 
 class ChatbotController:
     def __init__(self):
@@ -99,11 +96,11 @@ class ChatbotController:
             history.add_ai_message(response_content)
         
         elif planning_result.action == Action.RESPOND_DIRECTLY:
-            llm_response = await self.conversation_with_history.invoke(
+            response = await self.conversation_with_history.ainvoke(
                 {"input": user_input},
                 config=config
             )
-            response_content = llm_response.content # This is already guaranteed to be str
+            response_content = response.content
             print(f"[DEBUG] LLM responded: {response_content}")
         
         else: # Fallback for UNKNOWN intent or any truly unhandled action type
