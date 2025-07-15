@@ -2,7 +2,7 @@
 FastAPI application with all endpoints.
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
@@ -11,10 +11,15 @@ from sqlalchemy import text
 import json
 from functools import lru_cache
 import os
+import logging
 
 from utils.database import get_db, Outlet
 from utils.vector_store import vector_store
 from utils.text2sql import sql_generator
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Get port from environment variable with a default value
 PORT = int(os.getenv("PORT", 10000))
@@ -24,17 +29,24 @@ app = FastAPI(
     description="API for calculator, product search, and outlet queries"
 )
 
-# Add CORS middleware with specific origins
+# Add CORS middleware with more permissive settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chatbottesting.streamlit.app",  # Your Streamlit app
-        "http://localhost:8501",  # Local Streamlit development
-    ],
+    allow_origins=["*"],  # Allow all origins for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    logger.info(f"Headers: {request.headers}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
 
 # Lazy loading of ML models
 @lru_cache()

@@ -19,6 +19,12 @@ st.set_page_config(
 # Backend URL configuration
 BACKEND_URL = st.secrets.get("BACKEND_URL", "https://mindhive-chatbot-backend.onrender.com")
 
+# Debug mode toggle
+debug_mode = st.sidebar.checkbox("Debug Mode")
+
+if debug_mode:
+    st.sidebar.write(f"Backend URL: {BACKEND_URL}")
+
 # Custom CSS for chat bubbles
 st.markdown("""
 <style>
@@ -167,31 +173,75 @@ async def process_message(message: str) -> str:
     try:
         # Check for product-related queries
         if any(word in message for word in ["menu", "product", "drink", "food", "coffee", "price"]):
+            if debug_mode:
+                st.sidebar.write("Making product search request...")
+            
             async with httpx.AsyncClient(timeout=30.0) as client:
+                request_data = {"query": message, "top_k": 3}
+                if debug_mode:
+                    st.sidebar.write("Request data:", request_data)
+                
                 response = await client.post(
                     f"{BACKEND_URL}/products",
-                    json={"query": message, "top_k": 3},
-                    headers={"Content-Type": "application/json"}
+                    json=request_data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    }
                 )
+                
+                if debug_mode:
+                    st.sidebar.write("Response status:", response.status_code)
+                    st.sidebar.write("Response headers:", dict(response.headers))
+                    try:
+                        st.sidebar.write("Response body:", response.json())
+                    except:
+                        st.sidebar.write("Response text:", response.text)
+                
                 if response.status_code == 200:
                     products = response.json()
                     response_text = "Here's what I found:\n\n"
-                    for product in products["results"]:  # Access the results key
+                    for product in products["results"]:
                         response_text += f"• {product['name']} - RM{product['price']:.2f}\n"
                         response_text += f"  {product['description']}\n\n"
                     return response_text
                 else:
-                    st.error(f"Backend error: {response.status_code}")
-                    return f"Sorry, I couldn't fetch the products. Error: {response.status_code}"
+                    error_msg = f"Backend error: {response.status_code}"
+                    if debug_mode:
+                        try:
+                            error_msg += f"\nResponse: {response.json()}"
+                        except:
+                            error_msg += f"\nResponse: {response.text}"
+                    st.error(error_msg)
+                    return "Sorry, I couldn't fetch the products. Please try again."
         
         # Check for outlet-related queries
         elif any(word in message for word in ["outlet", "store", "location", "where", "open", "close"]):
+            if debug_mode:
+                st.sidebar.write("Making outlet search request...")
+            
             async with httpx.AsyncClient(timeout=30.0) as client:
+                request_data = {"query": message}
+                if debug_mode:
+                    st.sidebar.write("Request data:", request_data)
+                
                 response = await client.post(
                     f"{BACKEND_URL}/outlets",
-                    json={"query": message},
-                    headers={"Content-Type": "application/json"}
+                    json=request_data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    }
                 )
+                
+                if debug_mode:
+                    st.sidebar.write("Response status:", response.status_code)
+                    st.sidebar.write("Response headers:", dict(response.headers))
+                    try:
+                        st.sidebar.write("Response body:", response.json())
+                    except:
+                        st.sidebar.write("Response text:", response.text)
+                
                 if response.status_code == 200:
                     data = response.json()
                     if data["results"]:
@@ -207,8 +257,14 @@ async def process_message(message: str) -> str:
                     else:
                         return "I couldn't find any outlets matching your query. Could you please try rephrasing?"
                 else:
-                    st.error(f"Backend error: {response.status_code}")
-                    return f"Sorry, I couldn't fetch the outlets. Error: {response.status_code}"
+                    error_msg = f"Backend error: {response.status_code}"
+                    if debug_mode:
+                        try:
+                            error_msg += f"\nResponse: {response.json()}"
+                        except:
+                            error_msg += f"\nResponse: {response.text}"
+                    st.error(error_msg)
+                    return "Sorry, I couldn't fetch the outlets. Please try again."
         
         # Check for calculation queries
         elif any(word in message for word in ["calculate", "sum", "add", "subtract", "multiply", "divide"]):
