@@ -24,13 +24,16 @@ app = FastAPI(
     description="API for calculator, product search, and outlet queries"
 )
 
-# Add CORS middleware
+# Add CORS middleware with specific origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=[
+        "https://chatbottesting.streamlit.app",  # Your Streamlit app
+        "http://localhost:8501",  # Local Streamlit development
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Lazy loading of ML models

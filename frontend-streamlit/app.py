@@ -170,16 +170,18 @@ async def process_message(message: str) -> str:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{BACKEND_URL}/products",
-                    json={"query": message, "top_k": 3}
+                    json={"query": message, "top_k": 3},
+                    headers={"Content-Type": "application/json"}
                 )
                 if response.status_code == 200:
                     products = response.json()
                     response_text = "Here's what I found:\n\n"
-                    for product in products:
+                    for product in products["results"]:  # Access the results key
                         response_text += f"• {product['name']} - RM{product['price']:.2f}\n"
                         response_text += f"  {product['description']}\n\n"
                     return response_text
                 else:
+                    st.error(f"Backend error: {response.status_code}")
                     return f"Sorry, I couldn't fetch the products. Error: {response.status_code}"
         
         # Check for outlet-related queries
@@ -187,7 +189,8 @@ async def process_message(message: str) -> str:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{BACKEND_URL}/outlets",
-                    json={"query": message}
+                    json={"query": message},
+                    headers={"Content-Type": "application/json"}
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -204,6 +207,7 @@ async def process_message(message: str) -> str:
                     else:
                         return "I couldn't find any outlets matching your query. Could you please try rephrasing?"
                 else:
+                    st.error(f"Backend error: {response.status_code}")
                     return f"Sorry, I couldn't fetch the outlets. Error: {response.status_code}"
         
         # Check for calculation queries
@@ -222,14 +226,16 @@ async def process_message(message: str) -> str:
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
                         f"{BACKEND_URL}/calculate",
-                        json={"num1": nums[0], "operator": operator, "num2": nums[1]}
+                        json={"num1": nums[0], "operator": operator, "num2": nums[1]},
+                        headers={"Content-Type": "application/json"}
                     )
                     if response.status_code == 200:
                         result = response.json()
                         return f"The result is: {result['result']}"
                     else:
+                        st.error(f"Backend error: {response.status_code}")
                         return f"Sorry, I couldn't perform the calculation. Error: {response.status_code}"
-        
+            
         # Default responses for common queries
         elif "hi" in message or "hello" in message:
             return "👋 Hi there! How can I help you today?"
@@ -248,5 +254,5 @@ async def process_message(message: str) -> str:
                 "Could you please try rephrasing your question?")
     
     except Exception as e:
-        st.error(f"Error: {str(e)}")
-        return "I apologize, but I encountered an error. The backend might be starting up or temporarily unavailable. Please try again in a moment." 
+        st.error(f"Connection error: {str(e)}")
+        return "I apologize, but I encountered an error connecting to the backend. Please try again in a moment." 
