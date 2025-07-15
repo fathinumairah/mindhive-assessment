@@ -3,7 +3,7 @@ uvicorn[standard]
 sqlalchemy
 python-dotenv
 aiosqlite
-faiss-cpu-no-avx2
+faiss-cpu-noavx2
 sentence-transformers
 numpy
 langchain-core
