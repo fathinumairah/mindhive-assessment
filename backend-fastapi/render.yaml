@@ -3,9 +3,12 @@ services:
     name: mindhive-chatbot-backend
     env: python
     buildCommand: |
+      python -m venv .venv
+      . .venv/bin/activate
       python -m pip install --upgrade pip
       pip install -r requirements.txt
-    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+      chmod +x start.sh
+    startCommand: ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
