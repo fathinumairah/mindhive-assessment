@@ -67,7 +67,9 @@ async def search_products(query: ProductQuery):
     Search for products using vector similarity search and generate AI summary
     """
     try:
-        result = vector_store.search(query.query, k=query.top_k)
+        # Ensure top_k has a default value if None
+        top_k = query.top_k if query.top_k is not None else 3
+        result = vector_store.search(query.query, k=top_k)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

@@ -1,10 +1,10 @@
-fastapi[all]
-uvicorn
+fastapi
+uvicorn[standard]
 sqlalchemy
 python-dotenv
 aiosqlite
 faiss-cpu
 sentence-transformers
 numpy
-langchain
+langchain-core
 langchain-groq
