@@ -1,10 +1,10 @@
 numpy
+faiss-cpu
 fastapi
 uvicorn[standard]
 sqlalchemy
 python-dotenv
 aiosqlite
-faiss-cpu-noavx2
 sentence-transformers
 langchain-core
 langchain-groq
