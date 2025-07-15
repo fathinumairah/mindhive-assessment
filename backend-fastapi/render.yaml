@@ -2,16 +2,18 @@ services:
   - type: web
     name: mindhive-chatbot-backend
     env: python
+    plan: free
     buildCommand: |
       python -m pip install --upgrade pip
-      pip install uvicorn
       pip install -r requirements.txt
-      chmod +x start.sh
-    startCommand: ./start.sh
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.12
+        value: 3.12.1
+      - key: PORT
+        value: 8000
       - key: PYTHONPATH
         value: .
       - key: PYTHONUNBUFFERED
-        value: "true" 
+        value: "true"
+    autoDeploy: true 

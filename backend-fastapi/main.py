@@ -3,11 +3,13 @@ FastAPI application with all endpoints.
 """
 
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import json
+from functools import lru_cache
 
 from utils.database import get_db, Outlet
 from utils.vector_store import vector_store
@@ -17,6 +19,24 @@ app = FastAPI(
     title="ZUS Coffee API",
     description="API for calculator, product search, and outlet queries"
 )
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Lazy loading of ML models
+@lru_cache()
+def get_vector_store():
+    return vector_store
+
+@lru_cache()
+def get_sql_generator():
+    return sql_generator
 
 # Calculator endpoint
 class CalculationRequest(BaseModel):
@@ -69,7 +89,9 @@ async def search_products(query: ProductQuery):
     try:
         # Ensure top_k has a default value if None
         top_k = query.top_k if query.top_k is not None else 3
-        result = vector_store.search(query.query, k=top_k)
+        # Lazy load vector store
+        vs = get_vector_store()
+        result = vs.search(query.query, k=top_k)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
@@ -91,8 +113,10 @@ async def query_outlets(query: OutletQuery, db: Session = Depends(get_db)):
     Query outlets using natural language to SQL conversion
     """
     try:
+        # Lazy load SQL generator
+        sql_gen = get_sql_generator()
         # Generate SQL from natural language query
-        sql_query = sql_generator.generate_sql(query.query)
+        sql_query = sql_gen.generate_sql(query.query)
         
         # Execute the generated SQL
         results = db.execute(text(sql_query))
