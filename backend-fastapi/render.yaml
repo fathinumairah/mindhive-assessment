@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mindhive-chatbot-backend
+    env: python
+    buildCommand: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.12
+      - key: PYTHONUNBUFFERED
+        value: "true" 
