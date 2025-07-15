@@ -3,6 +3,11 @@ import httpx
 import json
 import asyncio
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure the page
 st.set_page_config(
@@ -10,6 +15,9 @@ st.set_page_config(
     page_icon="☕",
     layout="centered"
 )
+
+# Backend URL configuration
+BACKEND_URL = os.getenv("BACKEND_URL", "https://mindhive-chatbot-backend.onrender.com")
 
 # Custom CSS for chat bubbles
 st.markdown("""
@@ -159,9 +167,9 @@ async def process_message(message: str) -> str:
     try:
         # Check for product-related queries
         if any(word in message for word in ["menu", "product", "drink", "food", "coffee", "price"]):
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    "http://localhost:8000/products",
+                    f"{BACKEND_URL}/products",
                     json={"query": message, "top_k": 3}
                 )
                 if response.status_code == 200:
@@ -171,12 +179,14 @@ async def process_message(message: str) -> str:
                         response_text += f"• {product['name']} - RM{product['price']:.2f}\n"
                         response_text += f"  {product['description']}\n\n"
                     return response_text
+                else:
+                    return f"Sorry, I couldn't fetch the products. Error: {response.status_code}"
         
         # Check for outlet-related queries
         elif any(word in message for word in ["outlet", "store", "location", "where", "open", "close"]):
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    "http://localhost:8000/outlets",
+                    f"{BACKEND_URL}/outlets",
                     json={"query": message}
                 )
                 if response.status_code == 200:
@@ -193,11 +203,12 @@ async def process_message(message: str) -> str:
                         return response_text
                     else:
                         return "I couldn't find any outlets matching your query. Could you please try rephrasing?"
+                else:
+                    return f"Sorry, I couldn't fetch the outlets. Error: {response.status_code}"
         
         # Check for calculation queries
         elif any(word in message for word in ["calculate", "sum", "add", "subtract", "multiply", "divide"]):
             # Extract numbers and operator from message
-            # This is a simple implementation - you might want to make it more sophisticated
             parts = message.split()
             nums = []
             operator = None
@@ -208,14 +219,16 @@ async def process_message(message: str) -> str:
                     operator = part
             
             if len(nums) >= 2 and operator:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
-                        "http://localhost:8000/calculate",
+                        f"{BACKEND_URL}/calculate",
                         json={"num1": nums[0], "operator": operator, "num2": nums[1]}
                     )
                     if response.status_code == 200:
                         result = response.json()
                         return f"The result is: {result['result']}"
+                    else:
+                        return f"Sorry, I couldn't perform the calculation. Error: {response.status_code}"
         
         # Default responses for common queries
         elif "hi" in message or "hello" in message:
@@ -235,4 +248,5 @@ async def process_message(message: str) -> str:
                 "Could you please try rephrasing your question?")
     
     except Exception as e:
-        return f"I apologize, but I encountered an error. Please try again or rephrase your question." 
+        st.error(f"Error: {str(e)}")
+        return "I apologize, but I encountered an error. The backend might be starting up or temporarily unavailable. Please try again in a moment." 
