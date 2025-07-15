@@ -4,10 +4,6 @@ import json
 import asyncio
 from datetime import datetime
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Configure the page
 st.set_page_config(
